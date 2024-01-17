@@ -10,12 +10,14 @@ from enum import Enum
 from src.settings import Settings
 from src.labels import Labels
 from src.connection_manager import SocketClient
+import time
 
 class State(Enum):
     IDLE = 0
     RUNNING = 1
     STOPPED = 2
     EMERGENCY_STOPPED = 3
+    WARNING = 4
 
 class MonitorClient:
     def __init__(self, window):
@@ -27,6 +29,7 @@ class MonitorClient:
         self.window = window
         self.window.title(f"{self.labels.get('window_title_label')}")
         self.window.geometry(self.settings.get("window_geometry", "1280x720"))
+        self.now = time.time()
 
         # Create the GUI elements
         self.create_gui()
@@ -50,7 +53,7 @@ class MonitorClient:
 
         # Status label
         self.status_label = tk.Label(self.gui_frame, text=f"{self.labels.get('status_label')}: {self.state.name}")
-        self.status_label.grid(row=0, column=3, padx=10, pady=10, sticky="w")
+        self.status_label.grid(row=3, column=1, padx=10, pady=10, sticky="w")
 
         # Dropdown for selecting webcams
         self.webcam_dropdown = tk.StringVar(self.gui_frame)
@@ -134,29 +137,36 @@ class MonitorClient:
                 rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 pil_image = Image.fromarray(rgb_frame)
 
-                # Perform object detection
-                results = self.model(pil_image, conf=self.settings.get("ai_confidence"))
+                if self.now + 1 < time.time():
+                    self.now = time.time()
+                    print(time.time())
 
-                # annotated_frame = results[0].plot(boxes=False)
-                annotated_frame = results[0].plot(boxes=True)  # plot the results
+                    # Perform object detection
+                    results = self.model(pil_image, conf=self.settings.get("ai_confidence"))
 
-                detected_objects = []
-                confidence = 0
-                cls = 0
+                    # annotated_frame = results[0].plot(boxes=False)
+                    annotated_frame = results[0].plot(boxes=True)  # plot the results
 
-                for r in results:
-                    boxes = r.boxes
+                    detected_objects = []
+                    confidence = 0
+                    cls = 0
 
-                    for box in boxes:
-                        confidence = math.ceil((box.conf[0]*100)) / 100
-                        cls = int(box.cls[0])
-                        print(f"{self.class_names[cls]}: {confidence}")
-                        detected_objects.append(f"{self.class_names[cls]}: {confidence}")
-                self.console_box.config(state="normal")
-                self.console_box.delete(1.0, tk.END)
-                self.console_box.insert(tk.END, f"{detected_objects}")
-                self.console_box.see(tk.END)
-                self.console_box.config(state="disabled")
+                    for r in results:
+                        boxes = r.boxes
+
+                        for box in boxes:
+                            confidence = math.ceil((box.conf[0]*100)) / 100
+                            cls = int(box.cls[0])
+                            # print(f"{self.class_names[cls]}: {confidence}")
+                            detected_objects.append(f"{self.class_names[cls]}: {confidence}")
+                    self.console_box.config(state="normal")
+                    self.console_box.delete(1.0, tk.END)
+                    self.console_box.insert(tk.END, f"{detected_objects}")
+                    self.console_box.see(tk.END)
+                    self.console_box.config(state="disabled")
+                    if self.socketclient.is_connected() and self.state == State.RUNNING:
+                        if len(detected_objects) > 0:
+                            self.socketclient.send_message(f"{self.class_names[cls]}: {confidence}")
 
         
                 # Convert the annotated frame back to ImageTk format
@@ -217,14 +227,17 @@ class MonitorClient:
     def emergency_stop(self):
         self.status_label.config(text=f"{self.labels.get('status_label')}: {State.EMERGENCY_STOPPED.name}")
         self.socketclient.send_message("EMERGENCY")
+        self.state = State.EMERGENCY_STOPPED
 
     def start(self):
         self.status_label.config(text=f"{self.labels.get('status_label')}: {State.RUNNING.name}")
         self.socketclient.send_message("Start")
+        self.state = State.RUNNING
     
     def stop(self):
         self.status_label.config(text=f"{self.labels.get('status_label')}: {State.STOPPED.name}")
-        self.socketclient.send_message("Start")
+        self.socketclient.send_message("Stop")
+        self.state = State.STOPPED
 
     def set_screen_blank(self):
         blank_image = Image.new('RGB', (640, 480), (0, 0, 0))
