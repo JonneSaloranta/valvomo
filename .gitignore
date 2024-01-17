@@ -3,3 +3,4 @@ venv
 *.pt
 *.yaml
 __pycache__
+tests
