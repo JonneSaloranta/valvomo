@@ -93,6 +93,9 @@ class SocketClient:
         self.settings.set("conn_port", port)
         self.settings.save()
 
+    def is_connected(self):
+        return self.connected
+
 if __name__ == "__main__":
     socketclient = SocketClient()
     socketclient.connect('127.0.0.1', 12345)
