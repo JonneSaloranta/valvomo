@@ -28,23 +28,18 @@ class MonitorClient:
         self.det_confidence = 0.4
         self.window = window
         self.window.title(f"{self.labels.get('window_title_label')}")
-        self.window.geometry(self.settings.get("window_geometry", "1280x720"))
-        self.now = time.time()
-
-        # Create the GUI elements
-        self.create_gui()
-        
-        # self.socketclient = SocketClient('127.0.0.1', 12345)
-        # self.socketclient.connect()
-
-        # self.thread_receive = threading.Thread(target=self.socketclient.receive)
-        # self.thread_receive.start()
-
+        self.window.geometry(self.settings.get("window_geometry"))
+        self.now = int(round(time.time() * 1000))
+        self.type = self.settings.get("type")
         self.model = None
 
         self.running = False
         self.cap = None
         self.connected_webcams = []
+
+        # Create the GUI elements
+        self.create_gui()
+        
 
     def create_gui(self):
         # Create a frame to contain the GUI elements
@@ -90,6 +85,8 @@ class MonitorClient:
         self.console_box.grid(row=0, column=5, columnspan=4, padx=10, pady=10, sticky="w")
         self.console_box.config(state="disabled")
 
+        self.draw_boxes_checkbox = tk.Checkbutton(self.gui_frame, text=f"{self.labels.get('draw_boxes_label')}")
+        #TODO: Add functionality to toggle drawing detection boxes
 
         # Buttons
         self.connect_camera_button = tk.Button(self.gui_frame, text=f"{self.labels.get('camera_open_label')}", command=self.start_camera)
@@ -106,6 +103,15 @@ class MonitorClient:
         self.stop_button.grid(row=2, column=3, padx=10, pady=10, sticky="w")
         self.emergency_button.grid(row=3, column=3, columnspan=2, padx=10, pady=10, sticky="w")
         self.load_detection_model_button.grid(row=4, column=1, padx=10, pady=10, sticky="w")
+
+        
+
+        self.start_button.config(state="disabled")
+        self.stop_button.config(state="disabled")
+        self.server_connect_button.config(state="disabled")
+
+
+
         # self.load_cameras_button.grid(row=4, column=1, padx=10, pady=10, sticky="w")
 
     def update_webcam_list(self):
@@ -127,7 +133,6 @@ class MonitorClient:
             ret, frame = cap.read()
             cap.release()
             return ret and frame is not None
-        
 
     def update_frame(self):
         while self.running:
@@ -137,36 +142,35 @@ class MonitorClient:
                 rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 pil_image = Image.fromarray(rgb_frame)
 
-                if self.now + 1 < time.time():
-                    self.now = time.time()
-                    print(time.time())
+                # Perform object detection
+                results = self.model(pil_image, conf=self.settings.get("ai_confidence"))
+                
+                # annotated_frame = results[0].plot(boxes=False)
+                annotated_frame = results[0].plot(boxes=True)  # plot the results
+                detected_objects = []
+                confidence = 0
+                cls = 0
 
-                    # Perform object detection
-                    results = self.model(pil_image, conf=self.settings.get("ai_confidence"))
+                for r in results:
+                    boxes = r.boxes
 
-                    # annotated_frame = results[0].plot(boxes=False)
-                    annotated_frame = results[0].plot(boxes=True)  # plot the results
+                    for box in boxes:
+                        confidence = math.ceil((box.conf[0]*100)) / 100
+                        cls = int(box.cls[0])
+                        # print(f"{self.class_names[cls]}: {confidence}")
+                        detected_objects.append(f"{self.class_names[cls]}: {confidence}")
+                self.console_box.config(state="normal")
+                self.console_box.delete(1.0, tk.END)
+                self.console_box.insert(tk.END, f"{detected_objects}")
+                self.console_box.see(tk.END)
+                self.console_box.config(state="disabled")
 
-                    detected_objects = []
-                    confidence = 0
-                    cls = 0
-
-                    for r in results:
-                        boxes = r.boxes
-
-                        for box in boxes:
-                            confidence = math.ceil((box.conf[0]*100)) / 100
-                            cls = int(box.cls[0])
-                            # print(f"{self.class_names[cls]}: {confidence}")
-                            detected_objects.append(f"{self.class_names[cls]}: {confidence}")
-                    self.console_box.config(state="normal")
-                    self.console_box.delete(1.0, tk.END)
-                    self.console_box.insert(tk.END, f"{detected_objects}")
-                    self.console_box.see(tk.END)
-                    self.console_box.config(state="disabled")
+                if self.now + 1000 < int(round(time.time() * 1000)):
+                    self.now = int(round(time.time() * 1000))
                     if self.socketclient.is_connected() and self.state == State.RUNNING:
                         if len(detected_objects) > 0:
-                            self.socketclient.send_message(f"{self.class_names[cls]}: {confidence}")
+                            # self.socketclient.send_message(f"{self.class_names[cls]}: {confidence}")
+                            self.socketclient.send_message(f"{detected_objects[0]}")
 
         
                 # Convert the annotated frame back to ImageTk format
@@ -211,6 +215,10 @@ class MonitorClient:
         self.running = True
         self.window.after(0, self.set_camera_button_to_stop)
 
+        self.server_connect_button.config(state="normal")
+        self.start_button.config(state="normal")
+        self.stop_button.config(state="normal")
+
         # Start updating frames in a separate thread
         threading.Thread(target=self.update_frame, daemon=True).start()
 
@@ -222,6 +230,13 @@ class MonitorClient:
         if self.running:
             self.running = False
             self.connect_camera_button.config(text=f"{self.labels.get('camera_open_label')}", command=self.start_camera, state="normal")
+            self.socketclient.disconnect()
+            self.server_connect_button.config(text=f"{self.labels.get('connect_to_server_button')}", command=self.connect_to_server)
+            self.console_box.config(state="normal")
+            self.console_box.delete(1.0, tk.END)
+            self.console_box.insert(tk.END, f"Disconnected from server due to camera stop")
+            self.console_box.see(tk.END)
+            self.console_box.config(state="disabled")
             self.cap.release()
 
     def emergency_stop(self):
@@ -229,15 +244,26 @@ class MonitorClient:
         self.socketclient.send_message("EMERGENCY")
         self.state = State.EMERGENCY_STOPPED
 
+        self.start_button.config(state="normal")
+        self.stop_button.config(state="normal")
+        self.emergency_button.config(state="disabled")
+
     def start(self):
         self.status_label.config(text=f"{self.labels.get('status_label')}: {State.RUNNING.name}")
         self.socketclient.send_message("Start")
         self.state = State.RUNNING
+        self.start_button.config(state="disabled")
+        self.stop_button.config(state="normal")
+        self.emergency_button.config(state="normal")
     
     def stop(self):
         self.status_label.config(text=f"{self.labels.get('status_label')}: {State.STOPPED.name}")
         self.socketclient.send_message("Stop")
         self.state = State.STOPPED
+
+        self.start_button.config(state="normal")
+        self.stop_button.config(state="disabled")
+        self.emergency_button.config(state="normal")
 
     def set_screen_blank(self):
         blank_image = Image.new('RGB', (640, 480), (0, 0, 0))
