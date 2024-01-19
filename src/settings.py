@@ -6,6 +6,7 @@ class Settings:
         self.mgr = SettingsManager("settings.yaml")
         
         settings = {
+            "type": "1",
             "conn_ip": "127.0.0.1",
             "conn_port": 12345,
             "default_camera": 0,
@@ -14,6 +15,7 @@ class Settings:
             "window_height": 720,
             "ai_model": "yolov8n.pt",
             "ai_confidence": 0.4,
+            "draw_boxes": True,
         }
         self.settings = self.mgr.load_or_create_settings(settings)
 
