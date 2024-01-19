@@ -36,6 +36,7 @@ class Labels:
             'not_connected_to_server': 'Not connected to server!',
             'disconnected_from_server': 'Disconnected from server!',
             'opening_camera': 'Opening camera...',
+            'draw_boxes_label': 'Draw boxes',
         }
         self.settings = self.mgr.load_or_create_settings(messages)
 
