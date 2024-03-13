@@ -85,7 +85,7 @@ class MonitorClient:
         self.console_box.grid(row=0, column=5, columnspan=4, padx=10, pady=10, sticky="w")
         self.console_box.config(state="disabled")
 
-        self.draw_boxes_checkbox = tk.Checkbutton(self.gui_frame, text=f"{self.labels.get('draw_boxes_label')}")
+        #self.draw_boxes_checkbox = tk.Checkbutton(self.gui_frame, text=f"{self.labels.get('draw_boxes_label')}")
         #TODO: Add functionality to toggle drawing detection boxes
 
         # Buttons
@@ -95,6 +95,7 @@ class MonitorClient:
         self.emergency_button = tk.Button(self.gui_frame, text=f"{self.labels.get('emergency_stop_label')}", command=self.emergency_stop)
         self.load_detection_model_button = tk.Button(self.gui_frame, text=f"{self.labels.get('load_model_label')}", command=self.load_detection_model)
         # self.load_cameras_button = tk.Button(self.gui_frame, text=f"{self.labels.get('load_cameras_label')}", command=self.update_webcam_list)
+        self.reset_button = tk.Button(self.gui_frame, text=f"{self.labels.get('reset_button_label')}", command=self.reset)
 
         self.connect_camera_button.grid(row=0, column=4, padx=10, pady=10, sticky="w")
         self.connect_camera_button.config(state="disabled")
@@ -103,6 +104,7 @@ class MonitorClient:
         self.stop_button.grid(row=2, column=3, padx=10, pady=10, sticky="w")
         self.emergency_button.grid(row=3, column=3, columnspan=2, padx=10, pady=10, sticky="w")
         self.load_detection_model_button.grid(row=4, column=1, padx=10, pady=10, sticky="w")
+        self.reset_button.grid(row=4, column=2, padx=10, pady=10, sticky="w")
 
         
 
@@ -165,12 +167,12 @@ class MonitorClient:
                 self.console_box.see(tk.END)
                 self.console_box.config(state="disabled")
 
-                if self.now + 1000 < int(round(time.time() * 1000)):
+                if self.now + 250 < int(round(time.time() * 1000)):
                     self.now = int(round(time.time() * 1000))
                     if self.socketclient.is_connected() and self.state == State.RUNNING:
                         if len(detected_objects) > 0:
                             # self.socketclient.send_message(f"{self.class_names[cls]}: {confidence}")
-                            self.socketclient.send_message(f"{detected_objects[0]}")
+                            self.socketclient.send_message(f"{detected_objects[0]}\n")
 
         
                 # Convert the annotated frame back to ImageTk format
@@ -264,6 +266,15 @@ class MonitorClient:
         self.start_button.config(state="normal")
         self.stop_button.config(state="disabled")
         self.emergency_button.config(state="normal")
+
+    def reset(self):
+        self.status_label.config(text=f"{self.labels.get('status_label')}: {State.IDLE.name}")
+        self.socketclient.send_message("Reset")
+        self.state = State.IDLE
+
+        self.start_button.config(state="normal")
+        self.stop_button.config(state="disabled")
+        self.emergency_button.config(state="disabled")
 
     def set_screen_blank(self):
         blank_image = Image.new('RGB', (640, 480), (0, 0, 0))
