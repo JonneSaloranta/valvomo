@@ -37,6 +37,7 @@ class Labels:
             'disconnected_from_server': 'Disconnected from server!',
             'opening_camera': 'Opening camera...',
             'draw_boxes_label': 'Draw boxes',
+            'reset_button_label': 'Reset',
         }
         self.settings = self.mgr.load_or_create_settings(messages)
 
