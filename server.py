@@ -34,13 +34,22 @@ clients = []
 
 
 def broadcast(message):
-    for client in clients:
-        client.send(message)
+    for client in clients[:]:  # Iterate over a copy of the list
+        try:
+            client.send(message)
+        except Exception as e:
+            print(f"Error broadcasting to client: {e}")
+            clients.remove(client)
+            client.close()  # Ensure client socket is properly closed
 
 def broadcast_except(message, sender):
     for client in clients:
         if client != sender:
-            client.send(message)
+            try:
+                client.send(message)
+            except Exception as e:
+                print(f"Error broadcasting to client: {e}")
+                clients.remove(client)
 
 def handle_client(client):
     while True:
