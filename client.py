@@ -20,7 +20,7 @@ def receive():
             message = client.recv(1024).decode('utf-8')
             print(message)
         except Exception as e:
-            print("An error occured!")
+            print(f"Error receiving message: {e}")
             client.close()
             break
 
