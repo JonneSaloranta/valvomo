@@ -57,8 +57,9 @@ def handle_client(client):
             message = client.recv(1024)
             if not message:
                 raise ConnectionError("Client disconnected")
-
+            # add newline to the end of the message
             decoded_message = message.decode('utf-8')
+            decoded_message = decoded_message.strip() + '\n'
             broadcast(decoded_message.encode('utf-8'))
             print(f"Message from {client.getpeername()}: {decoded_message}")
         except ConnectionError:
