@@ -243,7 +243,7 @@ class MonitorClient:
 
     def emergency_stop(self):
         self.status_label.config(text=f"{self.labels.get('status_label')}: {State.EMERGENCY_STOPPED.name}")
-        self.socketclient.send_message("EMERGENCY")
+        self.socketclient.send_message("Emergency")
         self.state = State.EMERGENCY_STOPPED
 
         self.start_button.config(state="normal")
