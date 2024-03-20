@@ -4,3 +4,4 @@ venv
 *.yaml
 __pycache__
 tests
+*.old
