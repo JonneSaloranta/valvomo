@@ -7,7 +7,7 @@ class Labels:
         self.mgr = SettingsManager("messages.yaml")
         
         messages = {
-            "window_title_label": "Linjasto Valvomo",
+            "window_title_label": "AI Sorter",
             "confirm_exit": "Do you want to quit?",
             "start_button_label": "Start",
             "stop_button_label": "Stop",
