@@ -7,7 +7,7 @@ class Labels:
         self.mgr = SettingsManager("messages.yaml")
         
         messages = {
-            "window_title_label": "Linjasto Valvomo",
+            "window_title_label": "AI Sorter",
             "confirm_exit": "Do you want to quit?",
             "start_button_label": "Start",
             "stop_button_label": "Stop",
@@ -37,6 +37,7 @@ class Labels:
             'disconnected_from_server': 'Disconnected from server!',
             'opening_camera': 'Opening camera...',
             'draw_boxes_label': 'Draw boxes',
+            'reset_button_label': 'Reset',
         }
         self.settings = self.mgr.load_or_create_settings(messages)
 
