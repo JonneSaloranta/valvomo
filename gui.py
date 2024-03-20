@@ -246,9 +246,10 @@ class MonitorClient:
         self.socketclient.send_message("Emergency")
         self.state = State.EMERGENCY_STOPPED
 
-        self.start_button.config(state="normal")
-        self.stop_button.config(state="normal")
+        self.start_button.config(state="disabled")
+        self.stop_button.config(state="disabled")
         self.emergency_button.config(state="disabled")
+        self.reset_button.config(state="normal")
 
     def start(self):
         self.status_label.config(text=f"{self.labels.get('status_label')}: {State.RUNNING.name}")
@@ -257,6 +258,7 @@ class MonitorClient:
         self.start_button.config(state="disabled")
         self.stop_button.config(state="normal")
         self.emergency_button.config(state="normal")
+        self.reset_button.config(state="normal")
     
     def stop(self):
         self.status_label.config(text=f"{self.labels.get('status_label')}: {State.STOPPED.name}")
@@ -266,6 +268,7 @@ class MonitorClient:
         self.start_button.config(state="normal")
         self.stop_button.config(state="disabled")
         self.emergency_button.config(state="normal")
+        self.emergency_button.config(state="normal")
 
     def reset(self):
         self.status_label.config(text=f"{self.labels.get('status_label')}: {State.IDLE.name}")
@@ -273,8 +276,9 @@ class MonitorClient:
         self.state = State.IDLE
 
         self.start_button.config(state="normal")
-        self.stop_button.config(state="disabled")
-        self.emergency_button.config(state="disabled")
+        self.stop_button.config(state="normal")
+        self.emergency_button.config(state="normal")
+        self.reset_button.config(state="normal")
 
     def set_screen_blank(self):
         blank_image = Image.new('RGB', (640, 480), (0, 0, 0))
